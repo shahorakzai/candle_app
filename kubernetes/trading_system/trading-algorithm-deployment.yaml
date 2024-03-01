@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-algorithm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-algorithm
+  template:
+    metadata:
+      labels:
+        app: trading-algorithm
+    spec:
+      containers:
+      - name: trading-algorithm
+        image: your-image-name:tag
+        ports:
+        - containerPort: 80
+        env:
+        - name: KAFKA_BROKER_URL
+          value: "kafka-service:9092"
+        - name: MYSQL_HOST
+          value: "mysql-service"
+        # Add other environment variables as needed
