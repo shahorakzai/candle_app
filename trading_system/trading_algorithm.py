@@ -1,39 +1,68 @@
 import asyncio
-import logging
-from kafka_producer import KafkaCandleProducer
-from kafka_consumer import KafkaCandleConsumer
-from database_connector import MySQLConnector
-from candle_data_fetcher import CandleDataFetcher
+from datetime import datetime
+from trading_system.data_fetcher import TradingSignal, CandleDataFetcher, SignalAnalyzer
+from trading_system.database_connector import MySQLConnector
+from trading_system.kafka_consumer import KafkaCandleConsumer
+from trading_system.kafka_producer import KafkaCandleProducer
 
+
+class TradeExecutor:
+    def execute_trade(self, symbol: str, action: str, quantity: int):
+        pass
 
 class TradingAlgorithm:
-    def __init__(self):
-        self.kafka_producer = KafkaCandleProducer(broker_url='kafka-service:9092', topic='candle_data')
-        self.kafka_consumer = KafkaCandleConsumer(broker_url='kafka-service:9092', topic='candle_data')
-        self.db_connector = MySQLConnector(host='mysql-service', port=3306, username='root', password='password',
-                                           database='trading_system')
-        self.data_fetcher = CandleDataFetcher(api_url='your_candle_api_url')
+    def __init__(self,
+                 kafka_connector,
+                 kafka_consumer,
+                 mysql_connector,
+                 data_fetcher,
+                 signal_analyzer,
+                 trading_executor):
+        self.kafka_producer = kafka_connector
+        self.kafka_consumer = kafka_consumer
+        self.db_connector = mysql_connector
+        self.data_fetcher = data_fetcher
+        self.signal_analyzer = signal_analyzer
+        self.trading_executor = trading_executor
 
-    async def run(self):
-        try:
-            # Get last offset from MySQL
-            last_offset = self.db_connector.get_offset('candle_data', 0)
+    async def write_offset(self, timestamp):
+        self.db_connector.save_offset(timestamp)
 
-            # Start consuming from the last known offset
-            async for candle_data in self.kafka_consumer.consume_candle_data(last_offset):
-                # Process candle_data
-                # Save candle_data to MySQL or perform other operations
+    async def run(self, symbol):
+        await self.kafka_producer.start()
+        while True:
+            start_time = self.db_connector.get_offset()
+            end_time = datetime.now()
+            interval = end_time - start_time
+            candle_data = await self.data_fetcher.fetch_candle_data(symbol, start_time, end_time)
 
-                # Update offset
-                self.db_connector.save_offset('candle_data', 0, candle_data.offset)
+            trading_signal = await self.signal_analyzer.analyze_signals(candle_data)
 
-        except Exception as e:
-            # Handle exception (log, notify, etc.)
-            logging.error(f"An error occurred: {str(e)}")
-            # Resume running the algorithm
-            await self.run()
+            if trading_signal == TradingSignal.BUY:
+                await self.trade_executor.execute_trade(symbol, TradingSignal.BUY, quantity=100)
+            elif trading_signal == TradingSignal.SELL:
+                await self.trade_executor.execute_trade(symbol, TradingSignal.SELL, quantity=100)
 
+            await self.kafka_producer.send_to_kafka(candle_data)
+            await self.write_offset(candle_data["timestamp"])
+            await asyncio.sleep(interval)
 
 if __name__ == "__main__":
-    algorithm = TradingAlgorithm()
-    asyncio.run(algorithm.run())
+    kafka_producer = KafkaCandleProducer(broker_url='kafka-service:9092', topic='candle_data')
+    kafka_consumer = KafkaCandleConsumer(broker_url='kafka-service:9092', topic='candle_data')
+    mysql_connector = MySQLConnector(host='mysql-service', port=3306, username='root', password='root',
+                                     database='trading_algorithm')
+
+    data_fetcher = CandleDataFetcher(api_url='your_candle_api_url')
+    signal_analyzer = SignalAnalyzer()
+    trade_executor = TradeExecutor()
+    trading_algo = TradingAlgorithm(
+        kafka_producer,
+        kafka_consumer,
+        mysql_connector,
+        data_fetcher,
+        signal_analyzer,
+        trade_executor
+    )
+
+    asyncio.run(trading_algo.run())

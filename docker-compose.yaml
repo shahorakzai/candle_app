@@ -4,12 +4,14 @@ services:
   mysql:
     image: mysql:latest
     environment:
-      MYSQL_ROOT_PASSWORD: your_root_password
-      MYSQL_DATABASE: trading_system
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: trading_algorithm
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - mde
 
   kafka:
     image: wurstmeister/kafka:2.12-2.8.0
@@ -21,11 +23,15 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
+    networks:
+      - mde
 
   zookeeper:
     image: wurstmeister/zookeeper:3.4.6
     ports:
       - "2181:2181"
+    networks:
+      - mde
 
   trading-algorithm:
     build: .
@@ -34,12 +40,20 @@ services:
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USER: root
-      MYSQL_PASSWORD: your_root_password
-      MYSQL_DATABASE: trading_system
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: trading_algorithm
     depends_on:
       - kafka
       - mysql
+    networks:
+      - mde
 
 volumes:
   mysql_data:
     driver: local
+
+networks:
+  mde:
+    external: true
+    name: mde
+

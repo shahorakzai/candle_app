@@ -18,13 +18,13 @@ spec:
           image: mysql:latest
           env:
             - name: MYSQL_ROOT_PASSWORD
-              value: your_root_password
+              value: root
             - name: MYSQL_DATABASE
-              value: your_database
+              value: trading_algorithm
             - name: MYSQL_USER
-              value: your_username
+              value: root
             - name: MYSQL_PASSWORD
-              value: your_password
+              value: root
             - name: MYSQL_INITDB_SKIP_TZINFO
               value: "true"
           ports:
