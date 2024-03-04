@@ -39,9 +39,9 @@ class TradingAlgorithm:
             trading_signal = await self.signal_analyzer.analyze_signals(candle_data)
 
             if trading_signal == TradingSignal.BUY:
-                await self.trade_executor.execute_trade(symbol, TradingSignal.BUY, quantity=100)
+                await self.trading_executor.execute_trade(symbol, TradingSignal.BUY, quantity=100)
             elif trading_signal == TradingSignal.SELL:
-                await self.trade_executor.execute_trade(symbol, TradingSignal.SELL, quantity=100)
+                await self.trading_executor.execute_trade(symbol, TradingSignal.SELL, quantity=100)
 
             await self.kafka_producer.send_to_kafka(candle_data)
             await self.write_offset(candle_data["timestamp"])
