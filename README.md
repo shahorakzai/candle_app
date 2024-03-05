@@ -1,4 +1,4 @@
-Part 1: System Design and Architecture
+# Part 1: System Design and Architecture
 
     1. Architecture Overview:
         1. The system will consist of microservices for order management, market data, account management, risk management, and order execution. These will communicate via asynchronous message queues.
@@ -17,9 +17,21 @@ Part 1: System Design and Architecture
         2. Sensitive data like API keys will be stored encrypted at rest using AWS KMS. Access will be tightly controlled.
         3. Investor account data will be encrypted in transit and at rest in the database. Proper partitioning will be used to enforce data isolation between accounts.
         4. Communication between microservices will be encrypted using mTLS. API gateways will be used to enforce authentication and rate limiting
-        
-Part 2 Technical Implementation:
 
+
+   
+![alt-text](trading_system.png "Trading System")
+
+
+# Part 2 Technical Implementation:
+    
+    Current implementation:
+        1. The trading system will run in standalone mode either using docker-compose or kubernetes. which continuesly pulls data from the external API and push to kafka for further processing.
+        2. we save the state of the trading system in mysql in case if the systems goes down we have to restart from the same offset where system crashed or shutdown. 
+        3. The state management will help us in multiprocessing environment if in case we want to run multiple server to fetch data from API.
+        4. For processing the data we can have either process data and then push to the kafka or first push to the kafka and then consume from kafka for further processing. 
+        
+    
     1. Backend Development (Python):
         1. Focused on simplicity, modularity, and low coupling between components.
         2. Leverages asyncio for efficient execution.
@@ -51,7 +63,7 @@ Part 2 Technical Implementation:
         3. Horizontal scaling of microservices using Kubernetes 
 
 
-part 3 Case Study and Problem-Solving:
+# part 3 Case Study and Problem-Solving:
 
     1. Algorithms Optimization:
         1. Identify Performance Bottlenecks: 
